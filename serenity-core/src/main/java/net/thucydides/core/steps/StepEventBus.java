@@ -132,11 +132,14 @@ public class StepEventBus {
      * place the listener class on the classpath and it will be detected automatically.
      */
     public StepEventBus registerListener(final StepListener listener) {
+        LOGGER.info("Trying to register step listener: " + listener.getClass());
         if (!registeredListeners.contains(listener)) {
+            LOGGER.info("Registering step listener: " + listener.getClass());
             registeredListeners.add(listener);
             if (BaseStepListener.class.isAssignableFrom(listener.getClass())) {
                 baseStepListener = (BaseStepListener) listener;
                 baseStepListener.setEventBus(this);
+                LOGGER.info("Event bus set for step listener: " + listener.getClass());
             }
         }
         return this;

@@ -40,6 +40,7 @@ public class Listeners {
     }
 
     public static StepListener getLoggingListener() {
+        LOGGER.info("Getting LoggingListener");
         return Injectors.getInjector().getInstance(Key.get(StepListener.class, ThucydidesLogging.class));
     }
 

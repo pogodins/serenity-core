@@ -8,6 +8,8 @@ import net.thucydides.core.steps.StepEventBus;
 import net.thucydides.core.steps.StepListener;
 import net.thucydides.core.webdriver.Configuration;
 import org.openqa.selenium.WebDriver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -18,6 +20,7 @@ public class SerenityListeners {
     private Configuration systemConfiguration;
     private BaseStepListener baseStepListener;
     private List<StepListener> stepListeners;
+    private static final Logger LOGGER = LoggerFactory.getLogger(SerenityListeners.class);
 
     public SerenityListeners(Configuration systemConfiguration) {
         this(StepEventBus.getEventBus(), systemConfiguration);
@@ -25,10 +28,13 @@ public class SerenityListeners {
 
     public SerenityListeners(StepEventBus stepEventBus, Configuration systemConfiguration) {
         this.systemConfiguration = systemConfiguration;
+        LOGGER.info("System configuration: " + systemConfiguration);
 
         File outputDirectory = getSystemConfiguration().getOutputDirectory();
         baseStepListener = Listeners.getBaseStepListener().withOutputDirectory(outputDirectory);
+        LOGGER.info("Base listener: " + baseStepListener);
         stepListeners = Arrays.asList(baseStepListener, Listeners.getLoggingListener());
+        LOGGER.info("Step listeners: " + stepListeners);
 
         stepEventBus.dropAllListeners();
 

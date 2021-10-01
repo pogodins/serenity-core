@@ -1,5 +1,6 @@
 package net.thucydides.core.bootstrap;
 
+import net.serenitybdd.core.SerenityListeners;
 import net.serenitybdd.core.environment.ConfiguredEnvironment;
 import net.thucydides.core.model.TestOutcome;
 import net.thucydides.core.pages.Pages;
@@ -9,6 +10,8 @@ import net.thucydides.core.webdriver.Configuration;
 import net.thucydides.core.webdriver.ThucydidesWebDriverSupport;
 import net.thucydides.core.webdriver.WebdriverManager;
 import org.openqa.selenium.WebDriver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.List;
@@ -54,6 +57,7 @@ class ThucydidesContext {
     private Configuration configuration;
 
     private WebdriverManager webdriverManager;
+    private static final Logger LOGGER = LoggerFactory.getLogger(ThucydidesContext.class);
 
     private ThucydidesContext(StepListener... additionalListeners) {
         this(null, additionalListeners);
@@ -61,8 +65,10 @@ class ThucydidesContext {
 
     private ThucydidesContext(String defaultDriver, StepListener... additionalListeners) {
         configuration = ConfiguredEnvironment.getConfiguration();
+        LOGGER.info("System configuration: " + configuration);
         webdriverManager = ThucydidesWebDriverSupport.getWebdriverManager();
         outputDirectory = configuration.getOutputDirectory();
+        LOGGER.info("Output directory: " + outputDirectory);
         this.defaultDriver = defaultDriver;
         if (defaultDriver != null) {
             pages =  new Pages(getDriver());
@@ -70,6 +76,7 @@ class ThucydidesContext {
         } else {
             stepFactory = StepFactory.getFactory();
         }
+        LOGGER.info("Additional listeners: " + additionalListeners);
         registerStepListeners(additionalListeners);
         reportService = new ReportService(outputDirectory,
                 ReportService.getDefaultReporters());

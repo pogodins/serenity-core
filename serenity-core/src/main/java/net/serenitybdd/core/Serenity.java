@@ -19,6 +19,8 @@ import net.thucydides.core.util.EnvironmentVariables;
 import net.thucydides.core.webdriver.*;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.firefox.FirefoxProfile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -38,6 +40,7 @@ public class Serenity {
     private static final ThreadLocal<StepListener> stepListenerThreadLocal = new ThreadLocal<StepListener>();
     private static final ThreadLocal<TestSessionVariables> testSessionThreadLocal = new ThreadLocal<TestSessionVariables>();
     private static final ThreadLocal<FirefoxProfile> firefoxProfileThreadLocal = new ThreadLocal<>();
+    private static final Logger LOGGER = LoggerFactory.getLogger(Serenity.class);
 
     /**
      * Initialize Serenity-related fields in the specified object.
@@ -53,6 +56,7 @@ public class Serenity {
 
         ThucydidesWebDriverSupport.initializeFieldsIn(testCase);
 
+        LOGGER.info("Initializing test case: " + testCase);
         initStepListener();
 
         injectDriverInto(testCase);
@@ -114,8 +118,11 @@ public class Serenity {
 
 
     public static void initStepListener() {
+        LOGGER.info("Initializing step listener");
         Configuration configuration = ConfiguredEnvironment.getConfiguration();
+        LOGGER.info("Environment configuration: " + configuration);
         File outputDirectory = configuration.getOutputDirectory();
+        LOGGER.info("Output directory: " + outputDirectory);
         StepListener listener = new BaseStepListener(outputDirectory, getPages());
         stepListenerThreadLocal.set(listener);
         StepEventBus.getEventBus().registerListener(getStepListener());
