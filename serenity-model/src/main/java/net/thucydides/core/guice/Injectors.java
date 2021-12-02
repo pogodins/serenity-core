@@ -24,9 +24,9 @@ public class Injectors {
     }
     
     public static synchronized Injector getInjector(com.google.inject.Module module) {
-        LOGGER.info("Getting Injector");
+//        LOGGER.info("Getting Injector");
         String moduleClassName = module.getClass().getCanonicalName();
-        LOGGER.info("Module class name: " + moduleClassName);
+//        LOGGER.info("Module class name: " + moduleClassName);
         Injector injector = injectors.get(moduleClassName);
         if (injector == null) {
             LOGGER.info("Creating Injector");

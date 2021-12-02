@@ -68,7 +68,6 @@ class ThucydidesContext {
         LOGGER.info("System configuration: " + configuration);
         webdriverManager = ThucydidesWebDriverSupport.getWebdriverManager();
         outputDirectory = configuration.getOutputDirectory();
-        LOGGER.info("Output directory: " + outputDirectory);
         this.defaultDriver = defaultDriver;
         if (defaultDriver != null) {
             pages =  new Pages(getDriver());
