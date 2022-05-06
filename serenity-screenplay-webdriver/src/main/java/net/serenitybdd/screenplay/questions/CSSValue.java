@@ -1,40 +1,86 @@
 package net.serenitybdd.screenplay.questions;
 
-import net.serenitybdd.screenplay.Actor;
+import net.serenitybdd.core.pages.WebElementFacade;
+import net.serenitybdd.screenplay.Question;
+import net.serenitybdd.screenplay.abilities.BrowseTheWeb;
 import net.serenitybdd.screenplay.targets.Target;
 import org.openqa.selenium.By;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class CSSValue extends TargetedUIState<String> {
+import static java.util.Collections.singletonList;
 
-    private final String attributeName;
+public class CSSValue {
 
-    public CSSValue(Target target, Actor actor, String attributeName) {
-        super(target,actor);
-        this.attributeName = attributeName;
+    public static Question<String> of(Target target, String attributeName) {
+        return Question.about(attributeName +" CSS value of " + target.getName())
+                .answeredBy(actor -> matches(target.resolveAllFor(actor), attributeName));
     }
 
-    public static UIStateReaderWithNameBuilder<CSSValue> of(Target target) {
-        return new UIStateReaderWithNameBuilder<>(target, CSSValue.class);
+    public static Question<String> of(By byLocator, String attributeName) {
+        return Question.about(attributeName +" CSS value of element located by " + byLocator)
+                .answeredBy(actor -> matches(BrowseTheWeb.as(actor).findAll(byLocator), attributeName));
     }
 
-    public static UIStateReaderBuilder<CSSValue> of(By byLocator) {
-        return new UIStateReaderBuilder<>(Target.the(byLocator.toString()).located(byLocator), CSSValue.class);
+    public static Question<String> of(String locator, String attributeName) {
+        return Question.about(attributeName +" CSS value of " + locator)
+                .answeredBy(actor -> matches(BrowseTheWeb.as(actor).findAll(locator), attributeName));
     }
 
-    public static UIStateReaderBuilder<CSSValue> of(String locator) {
-        return new UIStateReaderBuilder<>(Target.the(locator).locatedBy(locator), CSSValue.class);
+    public static Question<Collection<String>> ofEach(Target target, String attributeName) {
+        return Question.about(attributeName +" CSS value of each" + target.getName())
+                .answeredBy(actor -> target.resolveAllFor(actor)
+                .stream()
+                .map(element -> matches(singletonList(element), attributeName))
+                .collect(Collectors.toList()));
     }
 
-    public String resolve() {
-        return target.resolveFor(actor).getCssValue(attributeName);
+    public static Question<Collection<String>> ofEach(By byLocator, String attributeName) {
+        return Question.about(attributeName +" CSS value of each" + byLocator)
+                .answeredBy(actor -> BrowseTheWeb.as(actor).findAll(byLocator)
+                .stream()
+                .map(element -> matches(singletonList(element), attributeName))
+                .collect(Collectors.toList()));
     }
 
-    public List<String> resolveAll() {
-        return resolvedElements()
+    public static Question<Collection<String>> ofEach(String locator, String attributeName) {
+        return Question.about(attributeName +" CSS value of " + locator)
+                .answeredBy(actor -> BrowseTheWeb.as(actor).findAll(locator)
+                .stream()
+                .map(element -> matches(singletonList(element), attributeName))
+                .collect(Collectors.toList()));
+    }
+
+    public static QuestionForName of(Target target) {
+        return name -> CSSValue.of(target, name);
+    }
+
+    public static QuestionForName of(By byLocator) {
+        return name -> CSSValue.of(byLocator, name);
+    }
+
+    public static QuestionForName of(String locator) {
+        return name -> CSSValue.of(locator, name);
+    }
+
+    public static QuestionForNames ofEach(Target target) {
+        return name -> CSSValue.ofEach(target, name);
+    }
+
+    public static QuestionForNames ofEach(By byLocator) {
+        return name -> CSSValue.ofEach(byLocator, name);
+    }
+
+    public static QuestionForNames ofEach(String locator) {
+        return name -> CSSValue.ofEach(locator, name);
+    }
+
+    private static String matches(List<WebElementFacade> elements, String attributeName) {
+        return elements.stream()
+                .findFirst()
                 .map(element -> element.getCssValue(attributeName))
-                .collect(Collectors.toList());
+                .orElse("");
     }
 }

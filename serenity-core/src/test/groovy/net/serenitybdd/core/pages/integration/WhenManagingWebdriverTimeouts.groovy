@@ -83,7 +83,7 @@ class WhenManagingWebdriverTimeouts extends Specification {
         when: "We access the field"
             page.slowLoadingField.isDisplayed()
         then: "An error should be thrown"
-            thrown(org.openqa.selenium.ElementNotVisibleException)
+            thrown(org.openqa.selenium.ElementNotInteractableException)
     }
 
     def "Slow loading fields should not wait once a step has failed"() {
@@ -99,7 +99,7 @@ class WhenManagingWebdriverTimeouts extends Specification {
             stopwatch.start()
             page.verySlowLoadingField.isDisplayed()
         then: "No error should be thrown"
-            notThrown(org.openqa.selenium.ElementNotVisibleException)
+            notThrown(org.openqa.selenium.ElementNotInteractableException)
         and: "the response should be returned instantly"
             stopwatch.stop() < 100
     }
@@ -465,6 +465,15 @@ class WhenManagingWebdriverTimeouts extends Specification {
             WebElementFacade city = page.withTimeoutOf(10, SECONDS).find("#city")
         then:
             city.isCurrentlyVisible()
+    }
+
+    def "The find() method after withTimeout can take parameters"() {
+        given:
+        def page = openStaticPageWith(["webdriver.timeouts.implicitlywait":"50","webdriver.wait.for.timeout": "50"])
+        when:
+        WebElementFacade city = page.withTimeoutOf(10, SECONDS).find("#{0}","city")
+        then:
+        city.isCurrentlyVisible()
     }
 
     def "waitForAbsenceOf should return immediately if no elements are present"() {

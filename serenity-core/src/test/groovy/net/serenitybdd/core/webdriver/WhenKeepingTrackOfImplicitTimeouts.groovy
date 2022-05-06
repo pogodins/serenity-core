@@ -1,13 +1,15 @@
 package net.serenitybdd.core.webdriver
 
+import io.github.bonigarcia.wdm.WebDriverManager
 import net.serenitybdd.core.pages.PageObject
 import net.thucydides.core.annotations.DefaultUrl
 import net.thucydides.core.webdriver.TimeoutStack
 import net.thucydides.core.webdriver.WebDriverFacade
 import net.thucydides.core.webdriver.WebDriverFactory
 import org.openqa.selenium.WebDriver
-import org.openqa.selenium.htmlunit.HtmlUnitDriver
-import org.openqa.selenium.phantomjs.PhantomJSDriver
+import org.openqa.selenium.chrome.ChromeDriver
+import org.openqa.selenium.chrome.ChromeOptions
+import spock.lang.Shared
 import spock.lang.Specification
 
 import java.time.Duration
@@ -21,6 +23,10 @@ class WhenKeepingTrackOfImplicitTimeouts extends Specification{
     WebDriver driver = Mock()
     WebDriver anotherDriver = Mock()
     WebDriver yetAnotherDriver = Mock()
+
+    def setup() {
+        WebDriverManager.chromedriver().setup()
+    }
 
     def "stack should be initially empty"() {
         when:
@@ -129,7 +135,7 @@ class WhenKeepingTrackOfImplicitTimeouts extends Specification{
 
     def "should be able to set the implicit timeout"() {
         given:
-            WebDriverFacade driver = new WebDriverFacade(PhantomJSDriver, new WebDriverFactory());
+            WebDriverFacade driver = new WebDriverFacade(ChromeDriver, new WebDriverFactory()).withOptions("--headless");
             def pageObject = new PageObjectUsingImplicitTimeouts(driver)
             pageObject.open()
         when:
@@ -140,7 +146,7 @@ class WhenKeepingTrackOfImplicitTimeouts extends Specification{
 
     def "should be able to reset the implicit timeout"() {
         given:
-            def driver = new WebDriverFacade(PhantomJSDriver, new WebDriverFactory());
+            def driver = new WebDriverFacade(ChromeDriver, new WebDriverFactory()).withOptions("--headless");;
             def pageObject = new PageObjectUsingImplicitTimeouts(driver)
             def originalTimeout = pageObject.getImplicitTimoutMilliseconds()
         when:
@@ -153,7 +159,7 @@ class WhenKeepingTrackOfImplicitTimeouts extends Specification{
 
     def "should be able to set and reset the implicit timeout using nested calls"() {
         given:
-            def driver = new WebDriverFacade(HtmlUnitDriver, new WebDriverFactory());
+            def driver = new WebDriverFacade(ChromeDriver.class, new WebDriverFactory()).withOptions("--headless");
             def pageObject = new PageObjectUsingImplicitTimeouts(driver)
             def originalTimeout = pageObject.getImplicitTimoutMilliseconds()
         when:

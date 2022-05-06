@@ -1,39 +1,59 @@
 package net.serenitybdd.screenplay.questions;
 
+import net.serenitybdd.core.pages.WebElementFacade;
 import net.serenitybdd.core.pages.WebElementState;
-import net.serenitybdd.screenplay.Actor;
+import net.serenitybdd.screenplay.Question;
+import net.serenitybdd.screenplay.abilities.BrowseTheWeb;
 import net.serenitybdd.screenplay.targets.Target;
 import org.openqa.selenium.By;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class Enabled extends TargetedUIState<Boolean> {
+import static java.util.Collections.singletonList;
+import static net.serenitybdd.screenplay.questions.LabelledQuestion.answer;
+import static net.serenitybdd.screenplay.questions.LabelledQuestion.answerEach;
 
-    public Enabled(Target target, Actor actor) {
-        super(target, actor);
+public class Enabled {
+
+    public static Question<Boolean> of(Target target) {
+        return answer(target.getName() + " is enabled for", actor -> matches(target.resolveAllFor(actor)));
     }
 
-    public static UIStateReaderBuilder<Enabled> of(Target target) {
-        return new UIStateReaderBuilder<>(target, Enabled.class);
+    public static Question<Boolean> of(By byLocator) {
+        return answer(byLocator + " is enabled for", actor -> matches(BrowseTheWeb.as(actor).findAll(byLocator)));
+    }
+
+    public static Question<Boolean> of(String locator) {
+        return answer(locator + " is enabled for", actor -> matches(BrowseTheWeb.as(actor).findAll(locator)));
     }
 
 
-    public static UIStateReaderBuilder<Enabled> of(By byLocator) {
-        return new UIStateReaderBuilder<>(Target.the(byLocator.toString()).located(byLocator), Enabled.class);
+    public static Question<List<Boolean>> ofEach(Target target) {
+        return answerEach(target.getName() + " is enabled for each", actor -> target.resolveAllFor(actor)
+                .stream()
+                .map(element -> matches(singletonList(element)))
+                .collect(Collectors.toList()));
     }
 
-    public static UIStateReaderBuilder<Enabled> of(String locator) {
-        return new UIStateReaderBuilder<>(Target.the(locator).locatedBy(locator), Enabled.class);
+    public static Question<List<Boolean>> ofEach(By byLocator) {
+        return answerEach(byLocator + " is enabled for each", actor -> BrowseTheWeb.as(actor).findAll(byLocator)
+                .stream()
+                .map(element -> matches(singletonList(element)))
+                .collect(Collectors.toList()));
     }
 
-    public Boolean resolve() {
-        return target.resolveFor(actor).isEnabled();
+    public static Question<List<Boolean>> ofEach(String locator) {
+        return answerEach(locator + " is enabled for each", actor -> BrowseTheWeb.as(actor).findAll(locator)
+                .stream()
+                .map(element -> matches(singletonList(element)))
+                .collect(Collectors.toList()));
     }
 
-    public List<Boolean> resolveAll() {
-        return resolvedElements()
+    private static boolean matches(List<WebElementFacade> elements) {
+        return elements.stream()
+                .findFirst()
                 .map(WebElementState::isEnabled)
-                .collect(Collectors.toList());
+                .orElse(false);
     }
 }

@@ -10,11 +10,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.openqa.selenium.*;
-import org.openqa.selenium.firefox.FirefoxDriver;
-import org.openqa.selenium.firefox.FirefoxOptions;
-
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 
 import java.time.temporal.ChronoUnit;
+import java.util.Collection;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItems;
@@ -27,10 +27,10 @@ public class CheckingFieldContentWithTheFluentElementAPI  {
 
     @BeforeClass
     public static void openStaticPage() {
-        WebDriverManager.firefoxdriver().setup();
-        FirefoxOptions firefoxOptions = new FirefoxOptions();
-        firefoxOptions.setHeadless(true);
-        localDriver = new FirefoxDriver(firefoxOptions);
+        WebDriverManager.chromedriver().setup();
+        ChromeOptions options = new ChromeOptions();
+        options.setHeadless(true);
+        localDriver = new ChromeDriver(options);
         page = new StaticSitePage(localDriver);
         page.open();
     }
@@ -81,6 +81,7 @@ public class CheckingFieldContentWithTheFluentElementAPI  {
     public void should_allow_find_as_a_synonym_for_element_using_strings() {
         assertThat(page.findBy("#demo").then("#specialField").getValue(), is("Special"));
     }
+
 
     @Test
     public void should_contain_texts_passes_if_page_contains_all_texts() {
@@ -166,7 +167,7 @@ public class CheckingFieldContentWithTheFluentElementAPI  {
         page.element(page.firstName).waitUntilVisible();
     }
 
-    @Test(expected = ElementNotVisibleException.class)
+    @Test(expected = ElementNotInteractableException.class)
     public void should_throw_expection_if_waiting_for_field_that_does_not_appear() {
         page.setWaitForTimeout(500);
         assertThat(page.element(page.hiddenField).isCurrentlyVisible(), is(false));
@@ -244,7 +245,6 @@ public class CheckingFieldContentWithTheFluentElementAPI  {
     public void should_timeout_when_waiting_for_elements_to_dissapear() {
         page.waitForTextToDisappear("A visible title", 500);
     }
-
 
     @Test
     public void should_select_dropdown_by_visible_text() {

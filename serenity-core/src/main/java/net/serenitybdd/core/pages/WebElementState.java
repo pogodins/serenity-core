@@ -108,7 +108,11 @@ public interface WebElementState {
 
     String getSelectedVisibleTextValue();
 
+    List<String> getSelectedVisibleTexts();
+
     String getSelectedValue();
+
+    List<String> getSelectedValues();
 
     List<String> getSelectOptions();
 
@@ -117,6 +121,10 @@ public interface WebElementState {
     WebElementState shouldBePresent();
 
     WebElementState shouldNotBePresent();
+
+    WebElementState shouldBeSelected();
+
+    WebElementState shouldNotBeSelected();
 
     boolean isSelected();
 

@@ -2,6 +2,7 @@ package net.serenitybdd.screenplay
 
 import net.serenitybdd.junit.runners.SerenityRunner
 import net.serenitybdd.screenplay.shopping.DanaGoesShoppingSample
+import net.serenitybdd.screenplay.shopping.DanaGoesShoppingQuicklySample
 import net.thucydides.core.model.TestResult
 import org.junit.runner.notification.RunNotifier
 import spock.lang.Specification
@@ -14,8 +15,10 @@ class WhenActorsGoOnAJourney extends Specification{
     def danaGoesShoppingSample
 
     def setup() {
-        danaGoesShoppingSample = new SerenityRunner(DanaGoesShoppingSample)
+        danaGoesShoppingSample = new SerenityRunner(DanaGoesShoppingQuicklySample)
     }
+
+
     def "should produce a normal test outcome"() {
         when:
             danaGoesShoppingSample.run(new RunNotifier())
@@ -47,9 +50,8 @@ class WhenActorsGoOnAJourney extends Specification{
             def outcome = results["shouldBeAbleToPurchaseAnItemForFree"]
             outcome.result == FAILURE
             outcome.testSteps.collect { it.unrendered().description } == ["Given Dana has purchased an apple for 0 dollars",
-                                                                          "Given Dana has purchased a pear for 5 dollars",
-                                                                          "Then total cost should be (15)"]
-            outcome.testSteps.collect { it.result } == [FAILURE, SKIPPED, SKIPPED]
+                                                                          "Given Dana has purchased a pear for 5 dollars"]
+            outcome.testSteps.collect { it.result } == [FAILURE, SKIPPED]
     }
 
     def "should produce a step with an error when a step breaks"() {
@@ -79,6 +81,6 @@ class WhenActorsGoOnAJourney extends Specification{
         then:
         def outcome = results["shouldBeAbleToPurchaseAnItemForFree"]
         outcome.result == FAILURE
-        outcome.testSteps.collect { it.result } == [FAILURE, SKIPPED, SKIPPED]
+        outcome.testSteps.collect { it.result } == [FAILURE, SKIPPED]
     }
 }

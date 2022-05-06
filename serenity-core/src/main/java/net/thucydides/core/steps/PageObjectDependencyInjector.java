@@ -23,8 +23,6 @@ import static net.serenitybdd.core.Serenity.getStepFactory;
 
 public class PageObjectDependencyInjector implements DependencyInjector {
 
-//    private final Pages pages;
-
     EnvironmentDependencyInjector environmentDependencyInjector;
     Configuration configuration;
 
@@ -98,9 +96,10 @@ public class PageObjectDependencyInjector implements DependencyInjector {
 
     private void updatePageObject(Object pageObject) {//, Pages pages) {
         if (pageObject instanceof PageObject) {
-//            ((PageObject) pageObject).setPages(pages);
             ((PageObject) pageObject).setDriver(Serenity.getWebdriverManager().getWebdriver());
-            ((PageObject) pageObject).setDefaultBaseUrl(configuration.getBaseUrl());
+            if (configuration.getBaseUrl() != null) {
+                ((PageObject) pageObject).setDefaultBaseUrl(configuration.getBaseUrl());
+            }
         }
     }
 

@@ -1,37 +1,59 @@
 package net.serenitybdd.screenplay.questions;
 
-import net.serenitybdd.screenplay.Actor;
+import net.serenitybdd.core.pages.WebElementFacade;
+import net.serenitybdd.core.pages.WebElementState;
+import net.serenitybdd.screenplay.Question;
+import net.serenitybdd.screenplay.abilities.BrowseTheWeb;
 import net.serenitybdd.screenplay.targets.Target;
 import org.openqa.selenium.By;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class TextContent extends TargetedUIState<String> {
+import static java.util.Collections.singletonList;
 
-    public TextContent(Target target, Actor actor) {
-        super(target, actor);
+public class TextContent {
+
+    public static Question<String> of(Target target) {
+        return Question.about("text of " + target.getName()).answeredBy(actor -> matches(target.resolveAllFor(actor)));
     }
 
-    public static UIStateReaderBuilder<TextContent> of(Target target) {
-        return new UIStateReaderBuilder<>(target, TextContent.class);
+    public static Question<String> of(By byLocator) {
+        return Question.about("text of element located by " + byLocator).answeredBy(actor -> matches(BrowseTheWeb.as(actor).findAll(byLocator)));
     }
 
-    public static UIStateReaderBuilder<TextContent> of(By byLocator) {
-        return new UIStateReaderBuilder<>(Target.the(byLocator.toString()).located(byLocator), TextContent.class);
+    public static Question<String> of(String locator) {
+        return Question.about("text of element located by " + locator).answeredBy(actor -> matches(BrowseTheWeb.as(actor).findAll(locator)));
     }
 
-    public static UIStateReaderBuilder<TextContent> of(String locator) {
-        return new UIStateReaderBuilder<>(Target.the(locator).locatedBy(locator), TextContent.class);
+    public static Question<Collection<String>> ofEach(Target target) {
+        return Question.about("text of each of " + target.getName()).answeredBy(actor -> target.resolveAllFor(actor)
+                .stream()
+                .map(element -> matches(singletonList(element)))
+                .collect(Collectors.toList()));
     }
 
-    public String resolve() {
-        return target.resolveFor(actor).getAttribute("textContent");
+    public static Question<Collection<String>> ofEach(By byLocator) {
+        return Question.about("text of each of element located by " + byLocator).answeredBy(actor -> BrowseTheWeb.as(actor).findAll(byLocator)
+                .stream()
+                .map(element -> matches(singletonList(element)))
+                .collect(Collectors.toList()));
     }
 
-    public List<String> resolveAll() {
-        return target.resolveAllFor(actor).stream()
+    public static Question<Collection<String>> ofEach(String locator) {
+        return Question.about("text of each of " + locator)
+                .answeredBy(actor -> BrowseTheWeb.as(actor).findAll(locator)
+                .stream()
+                .map(element -> matches(singletonList(element)))
+                .collect(Collectors.toList())
+                );
+    }
+
+    private static String matches(List<WebElementFacade> elements) {
+        return elements.stream()
+                .findFirst()
                 .map(element -> element.getAttribute("textContent"))
-                .collect(Collectors.toList());
+                .orElse("");
     }
 }

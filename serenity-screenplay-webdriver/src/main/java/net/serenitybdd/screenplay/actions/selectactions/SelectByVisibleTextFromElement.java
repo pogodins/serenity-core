@@ -6,16 +6,22 @@ import net.serenitybdd.screenplay.Interaction;
 import net.thucydides.core.annotations.Step;
 
 public class SelectByVisibleTextFromElement implements Interaction {
-    private final WebElementFacade element;
-    private final String visibleText;
+    private WebElementFacade element;
+    private String[] options;
+    private String selectedOptions;
 
-    public SelectByVisibleTextFromElement(WebElementFacade element, String visibleText) {
+    public SelectByVisibleTextFromElement() {}
+
+    public SelectByVisibleTextFromElement(WebElementFacade element, String... options) {
         this.element = element;
-        this.visibleText = visibleText;
+        this.options = options;
+        this.selectedOptions = String.join(",", options);
     }
 
-    @Step("{0} selects #visibleText")
+    @Step("{0} selects #selectedOptions")
     public <T extends Actor> void performAs(T theUser) {
-        element.selectByVisibleText(visibleText);
+        for(String option : options) {
+            element.selectByVisibleText(option);
+        }
     }
 }

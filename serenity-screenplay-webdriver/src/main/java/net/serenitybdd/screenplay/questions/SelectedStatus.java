@@ -1,38 +1,58 @@
 package net.serenitybdd.screenplay.questions;
 
+import net.serenitybdd.core.pages.WebElementFacade;
 import net.serenitybdd.core.pages.WebElementState;
-import net.serenitybdd.screenplay.Actor;
+import net.serenitybdd.screenplay.Question;
+import net.serenitybdd.screenplay.abilities.BrowseTheWeb;
 import net.serenitybdd.screenplay.targets.Target;
 import org.openqa.selenium.By;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class SelectedStatus extends TargetedUIState<Boolean> {
+import static java.util.Collections.singletonList;
+import static net.serenitybdd.screenplay.questions.LabelledQuestion.answer;
+import static net.serenitybdd.screenplay.questions.LabelledQuestion.answerEach;
 
-    public SelectedStatus(Target target, Actor actor) {
-        super(target, actor);
+public class SelectedStatus {
+
+    public static Question<Boolean> of(Target target) {
+        return answer(target.getName() + " is selected", actor -> matches(target.resolveAllFor(actor)));
     }
 
-    public static UIStateReaderBuilder<SelectedStatus> of(Target target) {
-        return new UIStateReaderBuilder<>(target, SelectedStatus.class);
+    public static Question<Boolean> of(By byLocator) {
+        return answer(byLocator + " is selected", actor -> matches(BrowseTheWeb.as(actor).findAll(byLocator)));
     }
 
-    public static UIStateReaderBuilder<SelectedStatus> of(By byLocator) {
-        return new UIStateReaderBuilder<>(Target.the(byLocator.toString()).located(byLocator), SelectedStatus.class);
+    public static Question<Boolean> of(String locator) {
+        return answer(locator + " is selected", actor -> matches(BrowseTheWeb.as(actor).findAll(locator)));
     }
 
-    public static UIStateReaderBuilder<SelectedStatus> of(String locator) {
-        return new UIStateReaderBuilder<>(Target.the(locator).locatedBy(locator), SelectedStatus.class);
+    public static Question<List<Boolean>> ofEach(Target target) {
+        return answerEach(target.getName() + " are selected", actor -> target.resolveAllFor(actor)
+                .stream()
+                .map(element -> matches(singletonList(element)))
+                .collect(Collectors.toList()));
     }
 
-    public Boolean resolve() {
-        return target.resolveFor(actor).isSelected();
+    public static Question<List<Boolean>> ofEach(By byLocator) {
+        return answerEach(byLocator + " are selected", actor -> BrowseTheWeb.as(actor).findAll(byLocator)
+                .stream()
+                .map(element -> matches(singletonList(element)))
+                .collect(Collectors.toList()));
     }
 
-    public List<Boolean> resolveAll() {
-        return resolvedElements()
+    public static Question<List<Boolean>> ofEach(String locator) {
+        return  answerEach(locator + " are selected", actor -> BrowseTheWeb.as(actor).findAll(locator)
+                .stream()
+                .map(element -> matches(singletonList(element)))
+                .collect(Collectors.toList()));
+    }
+
+    private static boolean matches(List<WebElementFacade> elements) {
+        return elements.stream()
+                .findFirst()
                 .map(WebElementState::isSelected)
-                .collect(Collectors.toList());
+                .orElse(false);
     }
 }

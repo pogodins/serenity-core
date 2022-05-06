@@ -1,15 +1,15 @@
 package net.serenitybdd.core.pages;
 
-import io.appium.java_client.FindsByAccessibilityId;
-import io.appium.java_client.FindsByAndroidUIAutomator;
+import net.serenitybdd.core.Serenity;
 import net.serenitybdd.core.annotations.ImplementedBy;
+import net.serenitybdd.core.selectors.Selectors;
 import net.thucydides.core.webdriver.ConfigurableTimeouts;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.WrapsElement;
+import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.interactions.Locatable;
-import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.Wait;
 
 import java.time.Duration;
@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @ImplementedBy(WebElementFacadeImpl.class)
-public interface WebElementFacade extends WebElement, WrapsElement, WebElementState, Locatable, ConfigurableTimeouts, FindsByAccessibilityId, FindsByAndroidUIAutomator {
+public interface WebElementFacade extends WebElement, WrapsElement, WebElementState, Locatable, ConfigurableTimeouts {
 
     <T extends WebElementFacade> T then(String xpathOrCssSelector);
     <T extends WebElementFacade> T thenFind(String xpathOrCssSelector);
@@ -40,7 +40,7 @@ public interface WebElementFacade extends WebElement, WrapsElement, WebElementSt
 
     String getAttribute(String name);
 
-    ListOfWebElementFacades thenFindAll(By selector);
+    ListOfWebElementFacades thenFindAll(By... selector);
 
     long getImplicitTimeoutInMilliseconds();
 
@@ -71,23 +71,17 @@ public interface WebElementFacade extends WebElement, WrapsElement, WebElementSt
 
     /**
      * Type a value into a field, making sure that the field is empty first.
-     *
-     * @param keysToSend
      */
     <T extends WebElementFacade> T type(CharSequence... keysToSend);
 
     /**
      * Type a value into a field and then press Enter, making sure that the field is empty first.
-     *
-     * @param value
      */
     <T extends WebElementFacade> T typeAndEnter(String value);
 
     /**
      * Type a value into a field and then press TAB, making sure that the field is empty first.
      * This currently is not supported by all browsers, notably Firefox.
-     *
-     * @param value
      */
     <T extends WebElementFacade> T typeAndTab(String value);
 
@@ -140,6 +134,10 @@ public interface WebElementFacade extends WebElement, WrapsElement, WebElementSt
 
     void click(ClickStrategy clickStrategy);
 
+    void doubleClick();
+
+    void contextClick();
+
     void clear();
 
     String toString();
@@ -155,5 +153,8 @@ public interface WebElementFacade extends WebElement, WrapsElement, WebElementSt
     boolean hasClass(String cssClassName);
 
     WebElement getElement();
+
+    ListOfWebElementFacades findNestedElementsMatching(ResolvableElement nestedElement);
+
 
 }

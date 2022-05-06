@@ -5,20 +5,25 @@ import com.google.common.base.Splitter;
 import net.serenitybdd.junit5.datadriven.JUnit5CSVTestDataSource;
 import net.thucydides.core.guice.Injectors;
 import net.thucydides.core.model.DataTable;
+import net.thucydides.core.steps.stepdata.StringTestDataSource;
 import net.thucydides.core.util.EnvironmentVariables;
-import org.apache.commons.collections.SetUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.*;
 import org.junit.jupiter.params.provider.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class JUnit5DataDrivenAnnotations {
 
@@ -66,6 +71,10 @@ public class JUnit5DataDrivenAnnotations {
             else if (isACsvSourceAnnotatedMethod(testDataMethod)) {
                 fillDataTablesFromCsvSource(dataTables,testDataMethod);
             }
+            else if (isAMethodSourceAnnotatedMethod(testDataMethod)) {
+                fillDataTablesFromMethodSource(dataTables,testDataMethod);
+            }
+
         }
         return dataTables;
     }
@@ -74,23 +83,49 @@ public class JUnit5DataDrivenAnnotations {
         String columnNamesString = createColumnNamesFromParameterNames(testDataMethod);
         String dataTableName = testClass.getCanonicalName() + "." + testDataMethod.getName();
         List<List<Object>> parametersAsListsOfObjects = listOfEnumSourceObjectsFrom(testDataMethod);
-        logger.info("GetParameterTablesEnumSource: Put parameter dataTableName " + dataTableName + " -- " + parametersAsListsOfObjects);
+        logger.debug("GetParameterTablesEnumSource: Put parameter dataTableName " + dataTableName + " -- " + parametersAsListsOfObjects);
         dataTables.put(dataTableName, createParametersTableFrom(columnNamesString, parametersAsListsOfObjects));
     }
 
     private void fillDataTablesFromValueSource(Map<String, DataTable> dataTables, Method testDataMethod) {
         String columnNamesString = createColumnNamesFromParameterNames(testDataMethod);
         String dataTableName = testClass.getCanonicalName() + "." + testDataMethod.getName();
-        List<List<Object>> parametersAsListsOfObjects = listOfObjectsFrom(testDataMethod);
-        logger.info("GetParameterTables: Put parameter dataTableName " + dataTableName + " -- " + parametersAsListsOfObjects);
+        List<List<Object>> parametersAsListsOfObjects = listOfObjectsFromValueSource(testDataMethod);
+        logger.debug("GetParameterTables: Put parameter dataTableName " + dataTableName + " -- " + parametersAsListsOfObjects);
         dataTables.put(dataTableName, createParametersTableFrom(columnNamesString, parametersAsListsOfObjects));
     }
 
     private void fillDataTablesFromCsvSource(Map<String, DataTable> dataTables, Method testDataMethod) {
+        CsvSource csvSource = ((CsvSource)testDataMethod.getAnnotation(CsvSource.class));
+        if (csvSource.textBlock() != null && !csvSource.textBlock().isEmpty()) {
+            fillDataTablesFromCsvSourceTextBlock(dataTables, testDataMethod);
+        } else {
+            fillDataTablesFromCsvSourceValues(dataTables,testDataMethod);
+        }
+    }
+
+    private void fillDataTablesFromCsvSourceTextBlock(Map<String, DataTable> dataTables, Method testDataMethod) {
+        CsvSource csvSource = testDataMethod.getAnnotation(CsvSource.class);
+        String deliminator = ",";
+        if (csvSource.delimiterString() != null) {
+            deliminator = csvSource.delimiterString();
+        } else if (csvSource.delimiter() != 0) {
+            deliminator = String.valueOf(csvSource.delimiter());
+        }
+        String columnNamesString = createColumnNamesFromParameterNames(testDataMethod);
+        String dataTableName = testClass.getCanonicalName() + "." + testDataMethod.getName();
+
+        String testData = csvSource.textBlock();
+        List<List<Object>> rows = listOfCsvObjectsFrom(testData.split("\\R"),deliminator);
+        logger.debug("GetParameterTables: Put parameter dataTableName " + dataTableName + " -- " + rows);
+        dataTables.put(dataTableName, createParametersTableFrom(columnNamesString, rows));
+    }
+
+    private void fillDataTablesFromCsvSourceValues(Map<String, DataTable> dataTables, Method testDataMethod) {
         String columnNamesString = createColumnNamesFromParameterNames(testDataMethod);
         String dataTableName = testClass.getCanonicalName() + "." + testDataMethod.getName();
         List<List<Object>> parametersAsListsOfObjects = listOfCsvObjectsFrom(testDataMethod);
-        logger.info("GetParameterTables: Put parameter dataTableName " + dataTableName + " -- " + parametersAsListsOfObjects);
+        logger.debug("GetParameterTables: Put parameter dataTableName " + dataTableName + " -- " + parametersAsListsOfObjects);
         dataTables.put(dataTableName, createParametersTableFrom(columnNamesString, parametersAsListsOfObjects));
     }
 
@@ -110,22 +145,105 @@ public class JUnit5DataDrivenAnnotations {
                 }
                 rows.add(dataRow);
             }
-            logger.info("GetParameterTablesCSV: Put parameter dataTableName " + dataTableName);
+            logger.debug("GetParameterTablesCSV: Put parameter dataTableName " + dataTableName);
             dataTables.put(dataTableName, createParametersTableFrom(columnNamesString,rows));
         } catch (IOException e) {
             logger.error("Cannot load csv resource ",e);
         }
     }
 
+     private void fillDataTablesFromMethodSource(Map<String, DataTable> dataTables, Method testDataMethod) {
+        String columnNamesString = createColumnNamesFromParameterNames(testDataMethod);
+        String dataTableName = testClass.getCanonicalName() + "." + testDataMethod.getName();
+        List<List<Object>> parametersAsListsOfObjects = listOfObjectsFromMethodSource(testDataMethod);
+        logger.info("GetParameterTablesFromMethodSource: Put parameter dataTableName " + dataTableName + " " + parametersAsListsOfObjects);
+        dataTables.put(dataTableName, createParametersTableFrom(columnNamesString, parametersAsListsOfObjects));
+    }
+
     List<Method> findTestDataMethods() {
-        return Arrays.asList(testClass.getMethods()).stream().filter(this::findParameterizedTests).collect(Collectors.toList());
+        return Arrays.asList(testClass.getDeclaredMethods()).stream().filter(this::findParameterizedTests).collect(Collectors.toList());
     }
 
     String createColumnNamesFromParameterNames(Method method) {
         return Arrays.asList(method.getParameters()).stream().map(Parameter::getName).collect(Collectors.joining(","));
     }
 
-    List<List<Object>> listOfObjectsFrom(Method testDataMethod){
+    List<List<Object>> listOfObjectsFromMethodSource(Method testDataMethod) {
+        MethodSource methodSourceAnnotation  = testDataMethod.getAnnotation(MethodSource.class);
+        String[] value = methodSourceAnnotation.value();
+        String methodName;
+        boolean staticMethodUsed = isStaticMethodUsed(testDataMethod);
+        if(value != null  && (value.length > 0) && (!value[0].isEmpty())) {
+            List<String> methodNames = Arrays.asList(value);
+            methodName = methodNames.get(0);
+            if(methodName.indexOf("#") > 0) { //external class source
+                List<List<Object>> result = getListOfObjectsFromExternalClassSource(methodName);
+                if (result != null) return result;
+            }
+        } else { //no factory method name
+            methodName = testDataMethod.getName();
+        }
+
+        try {
+            Method factoryMethod = testDataMethod.getDeclaringClass().getDeclaredMethod(methodName);
+            factoryMethod.setAccessible(true);
+            try {
+//                Stream<Arguments> result = null;
+//                if(staticMethodUsed) {
+//                    result = (Stream<Arguments>)factoryMethod.invoke(null);
+//                } else {
+//                    result = (Stream<Arguments>)factoryMethod.invoke(testDataMethod.getDeclaringClass().getConstructor().newInstance());
+//                }
+//                return result.map(argument->Arrays.asList(argument.get())).collect(Collectors.toList());
+                Stream<?> result = null;
+                if(staticMethodUsed) {
+                    result = (Stream<?>)factoryMethod.invoke(null);
+                } else {
+                    result = (Stream<?>)factoryMethod.invoke(testDataMethod.getDeclaringClass().getConstructor().newInstance());
+                }
+                return result.map(argument -> convertToListOfParameters(argument)).collect(Collectors.toList());
+                //return result.map(argument->Arrays.asList(argument.get())).collect(Collectors.toList());
+            } catch (IllegalAccessException | InvocationTargetException | InstantiationException e) {
+                logger.error("Cannot get list of objects from method source ", e);
+            }
+        } catch(NoSuchMethodException ex) {
+            logger.error("No static method with the name " + methodName  + " found ",ex);
+        }
+        return null;
+    }
+
+    private List<Object> convertToListOfParameters(Object argument) {
+        if (argument instanceof Arguments) {
+            return Arrays.asList(((Arguments) argument).get());
+        } else {
+            return Arrays.asList(argument);
+        }
+    }
+
+    private boolean isStaticMethodUsed(Method testDataMethod) {
+        List<Annotation> annotations = Arrays.asList(testDataMethod.getDeclaringClass().getDeclaredAnnotations());
+        List<Annotation> allTestInstanceAnnotations = annotations.stream().filter(annotation -> annotation.annotationType().equals(TestInstance.class)).collect(Collectors.toList());
+        Optional<Annotation> perClassAnnotation = allTestInstanceAnnotations.stream().filter(currentAnnotation -> ((TestInstance) currentAnnotation).value().equals(TestInstance.Lifecycle.PER_CLASS)).findAny();
+        return !perClassAnnotation.isPresent();
+    }
+
+    private List<List<Object>> getListOfObjectsFromExternalClassSource(String methodName) {
+        Method factoryMethod;
+        String externalParameterFactoryClassName = methodName.substring(0, methodName.indexOf("#"));
+        String externalParameterFactoryMethodName = methodName.substring(methodName.indexOf("#") +1, methodName.length());
+        try {
+            Class externalClassFactory = Class.forName(externalParameterFactoryClassName);
+            factoryMethod = externalClassFactory.getDeclaredMethod(externalParameterFactoryMethodName);
+            factoryMethod.setAccessible(true);
+            Stream<Arguments> result = (Stream<Arguments>)factoryMethod.invoke(null);
+            return result.map(argument->Arrays.asList(argument.get())).collect(Collectors.toList());
+        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            logger.error("Cannot found external parameter factory class method", e);
+        }
+        return null;
+    }
+
+    List<List<Object>> listOfObjectsFromValueSource(Method testDataMethod) {
         ValueSource annotation = testDataMethod.getAnnotation(ValueSource.class);
         if(ArrayUtils.isNotEmpty(annotation.strings()))
             return listOfObjectsFrom(annotation.strings());
@@ -156,11 +274,10 @@ public class JUnit5DataDrivenAnnotations {
     private List<List<Object>> listOfCsvObjectsFrom(Object[] parameters,String delimiter) {
         List<List<Object>> ret = new ArrayList<>();
         for(Object parameter : parameters) {
-            String[] split = ((String) parameter).split(delimiter);
+            String[] split = ((String) parameter).split(Pattern.quote(delimiter));
             ret.add(Arrays.asList(split));
         }
         return ret;
-        //return Arrays.asList(parameters).stream().map(parameter->Arrays.asList(((String)parameter).split(","))).collect(Collectors.toList());
     }
 
     List<List<Object>> listOfEnumSourceObjectsFrom(Method testDataMethod){
@@ -191,7 +308,7 @@ public class JUnit5DataDrivenAnnotations {
     }
 
     private List<List<Object>> listOfObjectsFrom(Object[] parameters) {
-        return Arrays.asList(parameters).stream().map(parameter->Arrays.asList(parameter)).collect(Collectors.toList());
+        return Arrays.stream(parameters).map(Arrays::asList).collect(Collectors.toList());
     }
 
 
@@ -218,14 +335,13 @@ public class JUnit5DataDrivenAnnotations {
         return columnNames;
     }
 
-
-
     private boolean findParameterizedTests(Method method) {
         return method.getAnnotation(ParameterizedTest.class) != null &&
                 (isAValueSourceAnnotatedMethod(method)
                         || isACsvFileSourceAnnotatedMethod(method)
                         || isACsvSourceAnnotatedMethod(method)
-                        || isAEnumSourceAnnotatedMethod(method));
+                        || isAEnumSourceAnnotatedMethod(method)
+                        || isAMethodSourceAnnotatedMethod(method));
     }
 
     private boolean isAValueSourceAnnotatedMethod(Method method){
@@ -242,5 +358,9 @@ public class JUnit5DataDrivenAnnotations {
 
     private boolean isACsvFileSourceAnnotatedMethod(Method method){
         return method.getAnnotation(CsvFileSource.class) != null;
+    }
+
+    private boolean isAMethodSourceAnnotatedMethod(Method method){
+        return method.getAnnotation(MethodSource.class) != null;
     }
 }

@@ -6,16 +6,32 @@ import net.serenitybdd.screenplay.actions.ByAction;
 import net.thucydides.core.annotations.Step;
 import org.openqa.selenium.By;
 
-public class SelectByVisibleTextFromBy extends ByAction {
-    private final String visibleText;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
-    public SelectByVisibleTextFromBy(String visibleText, By... locators) {
+public class SelectByVisibleTextFromBy extends ByAction {
+    private List<String> options;
+    private String selectedOptions;
+
+    public SelectByVisibleTextFromBy() {}
+
+    public SelectByVisibleTextFromBy(String option, By... locators) {
         super(locators);
-        this.visibleText = visibleText;
+        this.options = Collections.singletonList(option);
+        this.selectedOptions = option;
     }
 
-    @Step("{0} selects #visibleText")
+    public SelectByVisibleTextFromBy(List<String> options, By... locators) {
+        super(locators);
+        this.options = options;
+        this.selectedOptions = String.join(",", options);
+    }
+
+    @Step("{0} selects #selectedOptions")
     public <T extends Actor> void performAs(T theUser) {
-        BrowseTheWeb.as(theUser).find(locators).selectByVisibleText(visibleText);
+        options.forEach(
+            option -> BrowseTheWeb.as(theUser).find(locators).selectByVisibleText(option)
+        );
     }
 }

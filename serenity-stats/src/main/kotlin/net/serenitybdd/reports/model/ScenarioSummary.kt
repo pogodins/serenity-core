@@ -11,7 +11,7 @@ class ScenarioSummary(val title: String,
                       testResult: TestResult,
                       val reportName: String,
                       val results: List<ScenarioSummaryResult>) {
-    val result = testResult.toString().toLowerCase()
+    val result = testResult.toString().lowercase()
     val color = CSSColor().forResult(testResult)
     val errorMessage = if (results.isEmpty()) "" else results[0].errorMessage
     val hasExamples = results.size > 1
@@ -40,7 +40,7 @@ class ScenarioSummary(val title: String,
 
 class ScenarioSummaryResult(testResult: TestResult, conciseErrorMessage: String, val description: String, val testFailureErrorType : String) {
     val errorMessage = removeNoiseFrom(conciseErrorMessage)
-    val result = testResult.toString().toLowerCase()
+    val result = testResult.toString().lowercase()
 }
 
 private fun removeNoiseFrom(conciseErrorMessage: String): String =

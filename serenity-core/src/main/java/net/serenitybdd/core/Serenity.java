@@ -67,7 +67,7 @@ public class Serenity {
         injectDependenciesInto(testCase);
     }
 
-    private static void injectDependenciesInto(Object testCase) {
+    public static void injectDependenciesInto(Object testCase) {
         for (DependencyInjector dependencyInjector : getDependencyInjectors()) {
             dependencyInjector.injectDependenciesInto(testCase);
         }
@@ -137,7 +137,7 @@ public class Serenity {
      *
      * @param testCase any object (testcase or other) containing injectable Serenity components
      */
-    protected static void injectDriverInto(final Object testCase) {
+    public static void injectDriverInto(final Object testCase) {
         TestCaseAnnotations.forTestCase(testCase).injectDrivers(ThucydidesWebDriverSupport.getDriver(),
                 ThucydidesWebDriverSupport.getWebdriverManager());
 
@@ -157,7 +157,7 @@ public class Serenity {
      *
      * @param testCase any object (testcase or other) containing injectable Serenity components
      */
-    protected static void injectAnnotatedPagesObjectInto(final Object testCase) {
+    public static void injectAnnotatedPagesObjectInto(final Object testCase) {
         StepAnnotations.injector().injectOptionalAnnotatedPagesObjectInto(testCase, getPages());
     }
 
@@ -165,10 +165,15 @@ public class Serenity {
      * Indicate that the test run using this object is finished, and reports can be generated.
      */
     public static void done() {
-        EnvironmentVariables environmentVariables = Injectors.getInjector().getInstance(EnvironmentVariables.class);
-        boolean restartBrowserIfNecessary = !configuredIn(environmentVariables).restartBrowserForANew(NEVER);
-
+        boolean restartBrowserIfNecessary = !configuredIn(environmentVariables()).restartBrowserForANew(NEVER);
         done(restartBrowserIfNecessary);
+    }
+
+    /**
+     * Return the current environment variables configured for this test run.
+     */
+    public static EnvironmentVariables environmentVariables() {
+        return Injectors.getInjector().getInstance(EnvironmentVariables.class);
     }
 
     public static boolean currentDriverIsDisabled() {

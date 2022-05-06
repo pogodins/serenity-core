@@ -1,13 +1,10 @@
 package net.thucydides.core.webdriver.stubs;
 
-import org.openqa.selenium.Alert;
-import org.openqa.selenium.ElementNotVisibleException;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
+import org.openqa.selenium.*;
 
 public class TargetLocatorStub implements WebDriver.TargetLocator {
     
-    private WebDriver webDriver;
+    private final WebDriver webDriver;
     
     public TargetLocatorStub(WebDriver webDriver) {
         this.webDriver = webDriver;
@@ -39,13 +36,18 @@ public class TargetLocatorStub implements WebDriver.TargetLocator {
     }
 
     @Override
+    public WebDriver newWindow(WindowType typeHint) {
+        return webDriver;
+    }
+
+    @Override
     public WebDriver defaultContent() {
         return webDriver;
     }
 
     @Override
     public WebElement activeElement() {
-        throw new ElementNotVisibleException("No active element found (a previous step has failed)");
+        throw new ElementNotInteractableException("No active element found (a previous step has failed)");
     }
 
     @Override

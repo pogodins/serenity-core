@@ -19,6 +19,11 @@ public class WebElementFacadeStub implements WebElementFacade, WebElementState {
     }
 
     @Override
+    public ListOfWebElementFacades findNestedElementsMatching(ResolvableElement nestedElement) {
+        return new ListOfWebElementFacades(new ArrayList<>());
+    }
+
+    @Override
     public WebElementFacade then(String xpathOrCssSelector) {
         return this;
     }
@@ -85,7 +90,7 @@ public class WebElementFacadeStub implements WebElementFacade, WebElementState {
     }
 
     @Override
-    public ListOfWebElementFacades thenFindAll(By selector) {
+    public ListOfWebElementFacades thenFindAll(By... selector) {
         return new ListOfWebElementFacades(new ArrayList<>());
     }
 
@@ -413,6 +418,16 @@ public class WebElementFacadeStub implements WebElementFacade, WebElementState {
     }
 
     @Override
+    public WebElementState shouldBeSelected() {
+        return this;
+    }
+
+    @Override
+    public WebElementState shouldNotBeSelected() {
+        return this;
+    }
+
+    @Override
     public WebElementFacade waitUntilVisible() {
         return this;
     }
@@ -508,6 +523,16 @@ public class WebElementFacadeStub implements WebElementFacade, WebElementState {
     public void click(ClickStrategy clickStrategy) {}
 
     @Override
+    public void doubleClick() {
+
+    }
+
+    @Override
+    public void contextClick() {
+
+    }
+
+    @Override
     public void clear() {
     }
 
@@ -592,27 +617,6 @@ public class WebElementFacadeStub implements WebElementFacade, WebElementState {
                 return new Point(0, 0);
             }
         };
-    }
-
-
-    @Override
-    public WebElement findElementByAccessibilityId(String using) {
-        return this;
-    }
-
-    @Override
-    public List<WebElement> findElementsByAccessibilityId(String using) {
-        return new ArrayList<>();
-    }
-
-    @Override
-    public WebElement findElementByAndroidUIAutomator(String using) {
-        return this;
-    }
-
-    @Override
-    public List<WebElement> findElementsByAndroidUIAutomator(String using) {
-        return new ArrayList<>();
     }
 
     @Override

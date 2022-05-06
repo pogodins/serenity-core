@@ -3,6 +3,7 @@ package net.thucydides.core.reports;
 import com.google.common.base.Splitter;
 import net.serenitybdd.core.strings.Joiner;
 import net.thucydides.core.guice.Injectors;
+import net.thucydides.core.model.TestOutcome;
 import net.thucydides.core.model.TestResult;
 import net.thucydides.core.model.TestTag;
 import net.thucydides.core.model.TestType;
@@ -18,6 +19,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
@@ -51,12 +53,20 @@ public class ResultChecker {
         return tagValues.stream().map(TestTag::withValue).collect(Collectors.toList());
     }
 
+    public TestResult checkTestResults(TestOutcomes outcomes) {
+
+        if ((outcomes != null) && (!outcomes.isEmpty())) {
+            logOutcomesFrom(outcomes);
+            return outcomes.getResult();
+        }
+
+        return TestResult.UNDEFINED;
+    }
     public TestResult checkTestResults() {
         Optional<TestOutcomes> outcomes = loadOutcomes();
 
         if (outcomes.isPresent()) {
-            logOutcomesFrom(outcomes.get());
-            return outcomes.get().getResult();
+            return checkTestResults(outcomes.get());
         }
 
         return TestResult.UNDEFINED;
@@ -64,8 +74,11 @@ public class ResultChecker {
 
     private void logOutcomesFrom(TestOutcomes testOutcomes) {
         logger.info(white("-----------------------------------------"));
-        logger.info(white(" SERENITY TESTS : ") + colored(testOutcomes.getResult(), testOutcomes.getResult().toString()));
+        logger.info(white(" SERENITY TESTS: ") + colored(testOutcomes.getResult(), testOutcomes.getResult().toString()));
         logger.info(white("-----------------------------------------"));
+        logger.info(
+                resultLine(white(
+                 "Test cases executed    "), white(Integer.toString(testOutcomes.getOutcomes().size()))));
         logger.info(
                 resultLine(white(
                  "Tests executed         "), white(Integer.toString(testOutcomes.getTotal()))));
@@ -83,7 +96,11 @@ public class ResultChecker {
         );
         logger.info(
                 resultLine(purple(
-                  "Tests compromised      "), purple(Integer.toString(testOutcomes.count(TestType.ANY).withResult(TestResult.COMPROMISED))))
+                        "Tests compromised      "), purple(Integer.toString(testOutcomes.count(TestType.ANY).withResult(TestResult.COMPROMISED))))
+        );
+        logger.info(
+                resultLine(purple(
+                        "Tests aborted          "), purple(Integer.toString(testOutcomes.count(TestType.ANY).withResult(TestResult.ABORTED))))
         );
         logger.info(
                 resultLine(cyan(

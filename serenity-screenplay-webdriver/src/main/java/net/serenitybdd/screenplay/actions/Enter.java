@@ -5,15 +5,29 @@ import net.serenitybdd.screenplay.targets.Target;
 import org.openqa.selenium.By;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 import static net.serenitybdd.screenplay.Tasks.instrumented;
 
+/**
+ * Enter a value into a field, first waiting until the field is enabled, and then clearing the field of any current values,
+ * before entering the specified value.
+ * To perform the equivalent of Selenium `sendKeys()`, you can use `Enter.keyValue()` instead of `Enter.theValue()`
+ */
 public class Enter {
 
     private final CharSequence[] theText;
 
     public Enter(CharSequence... theText) {
-        this.theText = theText;
+        if (containsOnlyNullValues(theText)) {
+            this.theText = new CharSequence[]{""};
+        } else {
+            this.theText = theText;
+        }
+    }
+
+    private boolean containsOnlyNullValues(CharSequence[] theText) {
+        return theText.length == 1 && theText[0] == null;
     }
 
     public static Enter theValue(CharSequence... text) {

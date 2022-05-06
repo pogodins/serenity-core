@@ -450,7 +450,7 @@ public class SerenityRunner extends BlockJUnit4ClassRunner implements Taggable {
         if (remainingTries <= 0) { return; }
 
         int attemptNum = maxRetries() - remainingTries + 1;
-        logger.info(rerunTest.toString() + ": attempt " + attemptNum);
+        logger.debug(rerunTest.toString() + ": attempt " + attemptNum);
         StepEventBus.getEventBus().cancelPreviousTest();
         rerunTest.perform();
 
@@ -594,13 +594,15 @@ public class SerenityRunner extends BlockJUnit4ClassRunner implements Taggable {
     @Override
     protected Statement methodInvoker(final FrameworkMethod method, final Object test) {
 
+//  This might work too:
+//        Serenity.initialize(test);
         if (webtestsAreSupported()) {
             injectDriverInto(test);
             initPagesObjectUsing(driverFor(method));
             injectAnnotatedPagesObjectInto(test);
             initStepFactoryUsing(getPages());
         }
-
+        Serenity.injectDependenciesInto(test);
         injectScenarioStepsInto(test);
         injectEnvironmentVariablesInto(test);
         useStepFactoryForDataDrivenSteps();

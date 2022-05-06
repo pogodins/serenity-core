@@ -1,6 +1,7 @@
 package net.serenitybdd.junit5;
 
 import net.thucydides.core.model.*;
+import net.thucydides.core.steps.BaseStepListener;
 import net.thucydides.core.steps.StepEventBus;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.runner.Runner;
@@ -10,6 +11,20 @@ import java.util.stream.Collectors;
 
 public class ParameterizedTestsOutcomeAggregator {
 
+    private List<TestOutcome> allTestOutcomes;
+
+    public ParameterizedTestsOutcomeAggregator() {
+        BaseStepListener baseStepListener = StepEventBus.getEventBus().getBaseStepListener();
+        allTestOutcomes = baseStepListener.getTestOutcomes();
+    }
+
+    public ParameterizedTestsOutcomeAggregator(BaseStepListener baseStepListener) {
+        allTestOutcomes = baseStepListener.getTestOutcomes();
+    }
+
+    public ParameterizedTestsOutcomeAggregator(List<TestOutcome> testOutcomes) {
+        allTestOutcomes = testOutcomes;
+    }
 
     public List<TestOutcome> aggregateTestOutcomesByTestMethods() {
         List<TestOutcome> allOutcomes = getTestOutcomesForAllParameterSets();
@@ -21,8 +36,9 @@ public class ParameterizedTestsOutcomeAggregator {
         }
     }
 
-    private List<TestOutcome> aggregatedScenarioOutcomes(List<TestOutcome> allOutcomes) {
-        Map<String, TestOutcome> scenarioOutcomes = new HashMap();
+    private synchronized List<TestOutcome> aggregatedScenarioOutcomes(List<TestOutcome> allOutcomes) {
+
+        Map<String, TestOutcome> scenarioOutcomes = new HashMap<>();
 
         for (TestOutcome testOutcome : allOutcomes) {
             final String normalizedMethodName = baseMethodName(testOutcome);
@@ -41,7 +57,7 @@ public class ParameterizedTestsOutcomeAggregator {
                     List<DataTableRow> scenarioRows = scenarioOutcome.getDataTable().getRows();
                     List<DataTableRow> outcomeRows = testOutcome.getDataTable().getRows();
                     for (DataTableRow row : outcomeRows) {
-                        if (!scenarioRows.contains(row)) {
+                        if (!containRow(scenarioRows, row)) {
                             scenarioOutcome.addRow(row);
                         }
                     }
@@ -57,13 +73,17 @@ public class ParameterizedTestsOutcomeAggregator {
 
     }
 
+    private boolean containRow(List<DataTableRow> scenarioRows, DataTableRow expectedRow) {
+        return scenarioRows.stream().anyMatch( row -> row.equalsIgnoringTheResult(expectedRow));
+    }
+
     private void recordTestOutcomeAsSteps(TestOutcome testOutcome, TestOutcome scenarioOutcome) {
         final String name = alternativeMethodName(testOutcome);
         TestStep nestedStep = TestStep.forStepCalled(name).withResult(testOutcome.getResult());
         List<TestStep> testSteps = testOutcome.getTestSteps();
 
         if (testOutcome.getTestFailureCause() != null) {
-            nestedStep.failedWith(testOutcome.getTestFailureCause().toException());
+            nestedStep.failedWith(testOutcome.getTestFailureCause().getOriginalCause());
         }
 
         if (!testSteps.isEmpty()) {
@@ -78,6 +98,7 @@ public class ParameterizedTestsOutcomeAggregator {
         if (nestedStep.getDuration() == 0) {
             nestedStep.setDuration(testOutcome.getDuration());
         }
+
         scenarioOutcome.recordStep(nestedStep);
     }
 
@@ -138,12 +159,12 @@ public class ParameterizedTestsOutcomeAggregator {
         }
     }
 
-    public static List<TestOutcome> getTestOutcomesForAllParameterSets() {
-        List<TestOutcome> allTestOutcomes = StepEventBus.getEventBus().getBaseStepListener().getTestOutcomes();
+    public List<TestOutcome> getTestOutcomesForAllParameterSets() {
         List<TestOutcome> testOutcomes = new ArrayList<>();
         for (TestOutcome testOutcome : allTestOutcomes) {
             //if (!testOutcomes.contains(testOutcome)) {
                 testOutcomes.add(withParentStepsMerged(testOutcome));
+                //testOutcomes.add(testOutcome);
             //}
         }
         return testOutcomes;

@@ -4,10 +4,10 @@ import net.serenitybdd.core.PendingStepException;
 import net.serenitybdd.core.Serenity;
 import net.serenitybdd.core.SkipNested;
 import net.serenitybdd.core.eventbus.Broadcaster;
+import net.serenitybdd.core.exceptions.IgnoreStepException;
 import net.serenitybdd.core.parallel.Agent;
 import net.serenitybdd.markers.IsHidden;
 import net.serenitybdd.screenplay.events.*;
-import net.serenitybdd.screenplay.exceptions.IgnoreStepException;
 import net.serenitybdd.screenplay.facts.Fact;
 import net.serenitybdd.screenplay.facts.FactLifecycleListener;
 import net.thucydides.core.annotations.Pending;
@@ -20,6 +20,8 @@ import net.thucydides.core.util.EnvironmentVariables;
 import java.lang.reflect.Method;
 import java.util.*;
 
+import static net.serenitybdd.screenplay.Actor.ErrorHandlingMode.IGNORE_EXCEPTIONS;
+import static net.serenitybdd.screenplay.Actor.ErrorHandlingMode.THROW_EXCEPTION_ON_FAILURE;
 import static net.serenitybdd.screenplay.SilentTasks.isNestedInSilentTask;
 import static net.serenitybdd.screenplay.SilentTasks.isSilent;
 import static net.thucydides.core.ThucydidesSystemProperty.MANUAL_TASK_INSTRUMENTATION;
@@ -49,6 +51,7 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
 
     /**
      * Add all the remembered items for the current actor to the other actor's memory
+     *
      * @param otherActor
      */
     public void brief(Actor otherActor) {
@@ -59,8 +62,12 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
         return getNameOrPronoun();
     }
 
+    /**
+     * Create a new actor with a given name.
+     * This actor will have no abilities initially, so you will need to assign some abilities
+     * using the whoCan() method.
+     */
     public static Actor named(String name) {
-        EventBusInterface.castActor(name);
         return new Actor(name);
     }
 
@@ -84,13 +91,16 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
 
     public <T extends Ability> Actor can(T doSomething) {
         if (doSomething instanceof RefersToActor) {
-            ((RefersToActor)doSomething).asActor(this);
+            ((RefersToActor) doSomething).asActor(this);
         }
         abilities.put(doSomething.getClass(), doSomething);
         eventBusInterface.assignAbilityToActor(this, doSomething.toString());
         return this;
     }
 
+    /**
+     * Assign an ability to an actor.
+     */
     public <T extends Ability> Actor whoCan(T doSomething) {
         return can(doSomething);
     }
@@ -109,16 +119,17 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
     /**
      * Return an ability that extends the given class. Can be a Superclass or an Interface. If there are multiple
      * candidate Abilities, the first one found will be returned.
+     *
      * @param extendedClass the Interface class that we expect to find
-     * @param <C> the matching Ability cast to extendedClass or null if none match
+     * @param <C>           the matching Ability cast to extendedClass or null if none match
      */
     @SuppressWarnings("unchecked")
     public <C> C getAbilityThatExtends(Class<C> extendedClass) {
         // See if any ability extends doSomething
-        for (Map.Entry<Class, Ability> entry: abilities.entrySet()) {
+        for (Map.Entry<Class, Ability> entry : abilities.entrySet()) {
             // Return the first matching Ability we find
             if (extendedClass.isAssignableFrom(entry.getKey())) {
-                return  (C) entry.getValue();
+                return (C) entry.getValue();
             }
         }
         return null;
@@ -147,7 +158,8 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
     /**
      * A method used to declare that an actor is now the actor in the spotlight, without having them perform any tasks.
      */
-    public final void entersTheScene() {}
+    public final void entersTheScene() {
+    }
 
     public final void has(Performable... todos) {
         attemptsTo(todos);
@@ -174,7 +186,11 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
         attemptsTo(todos);
     }
 
-    public final void attemptsTo(Performable... tasks) {
+    public enum ErrorHandlingMode {
+        THROW_EXCEPTION_ON_FAILURE, IGNORE_EXCEPTIONS
+    }
+
+    public final void attemptsTo(ErrorHandlingMode mode, Performable... tasks) {
         beginPerformance();
         for (Performable task : tasks) {
             if (isNestedInSilentTask()) {
@@ -187,7 +203,11 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
                 perform(InstrumentedTask.of(task));
             }
         }
-        endPerformance();
+        endPerformance(mode);
+    }
+
+    public final void attemptsTo(Performable... tasks) {
+        attemptsTo(THROW_EXCEPTION_ON_FAILURE, tasks);
     }
 
     private boolean isHidden(Performable task) {
@@ -241,6 +261,7 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
 
             performTask(todo);
 
+            // TODO: When and how should this work
             if (anOutOfStepErrorOccurred()) {
                 eventBusInterface.mergePreviousStep();
             }
@@ -258,6 +279,7 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
 
     private <T extends Performable> void performTask(T todo) {
         if (!StepEventBus.getEventBus().currentTestIsSuspended()) {
+            EventBusInterface.castActor(name);
             todo.performAs(this);
         }
     }
@@ -267,9 +289,9 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
     }
 
     private <T extends Performable> boolean isPending(T todo) {
-            Method performAs = getPerformAsForClass(todo.getClass().getSuperclass()).orElse(getPerformAsForClass(todo.getClass()).orElse(null));
+        Method performAs = getPerformAsForClass(todo.getClass().getSuperclass()).orElse(getPerformAsForClass(todo.getClass()).orElse(null));
 
-            return (performAs != null) && (performAs.getAnnotation(Pending.class) != null);
+        return (performAs != null) && (performAs.getAnnotation(Pending.class) != null);
     }
 
     private Optional<Method> getPerformAsForClass(Class taskClass) {
@@ -333,6 +355,9 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
     }
 
     private boolean anOutOfStepErrorOccurred() {
+        if (!eventBusInterface.isBaseStepListenerRegistered()) {
+            return false;
+        }
         if (eventBusInterface.aStepHasFailedInTheCurrentExample()) {
             return (eventBusInterface.getRunningStepCount()) > taskTally.getPerformedTaskCount();
         } else {
@@ -379,7 +404,9 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T forget(String key) { return (T) notepad.remove(key);}
+    public <T> T forget(String key) {
+        return (T) notepad.remove(key);
+    }
 
     public <T> T sawAsThe(String key) {
         return recall(key);
@@ -395,7 +422,31 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
     }
 
     private void endPerformance() {
+        endPerformance(THROW_EXCEPTION_ON_FAILURE);
+    }
+
+    private void endPerformance(ErrorHandlingMode mode) {
         Broadcaster.getEventBus().post(new ActorEndsPerformanceEvent(name));
+        boolean isAFixtureMethod = StepEventBus.getEventBus().inFixtureMethod();
+        if (mode == THROW_EXCEPTION_ON_FAILURE && !isAFixtureMethod) {
+            eventBusInterface.failureCause().ifPresent(
+                    cause -> {
+                        StepEventBus.getEventBus().notifyFailure();
+                        //StepEventBus.getEventBus().testFinished(StepEventBus.getEventBus().currentTestOutcomeIsDataDriven());
+                        if (cause.isCompromised()) {
+                            throw cause.asCompromisedException();
+                        } else if (cause.isAnError()) {
+                            throw cause.asError();
+                        } else if (cause.isAnAssertionError()) {
+                            throw cause.asAssertionError();
+                        } else if (cause.getOriginalCause() instanceof RuntimeException) {
+                            throw (RuntimeException) cause.getOriginalCause();
+                        } else {
+                            throw cause.asFailure();
+                        }
+                    }
+            );
+        }
     }
 
 
@@ -408,7 +459,7 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
     private void endConsequenceCheck() {
         consequenceListener.endConsequenceCheck();
         Broadcaster.getEventBus().post(new ActorEndsConsequenceCheckEvent(name));
-        endPerformance();
+        endPerformance(IGNORE_EXCEPTIONS);
     }
 
 

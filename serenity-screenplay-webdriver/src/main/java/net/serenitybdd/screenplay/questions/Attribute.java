@@ -1,83 +1,86 @@
 package net.serenitybdd.screenplay.questions;
 
 import net.serenitybdd.core.pages.WebElementFacade;
-import net.serenitybdd.screenplay.Actor;
+import net.serenitybdd.screenplay.Question;
+import net.serenitybdd.screenplay.abilities.BrowseTheWeb;
 import net.serenitybdd.screenplay.targets.Target;
 import org.openqa.selenium.By;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class Attribute extends TargetedUIState<String> {
+import static java.util.Collections.singletonList;
 
-    private String attributeName;
+public class Attribute {
 
-    public Attribute(Target target, Actor actor, String attributeName) {
-        super(target, actor);
-        this.attributeName = attributeName;
+    public static Question<String> of(Target target, String attributeName) {
+        return Question.about(attributeName +" attribute of " + target.getName())
+                .answeredBy(actor -> matches(target.resolveAllFor(actor), attributeName));
     }
 
-    public static TargetNamedAttributeBuilder of(Target target) {
-        return new TargetNamedAttributeBuilder(target);
+    public static Question<String> of(By byLocator, String attributeName) {
+        return Question.about(attributeName + " attribute of " + attributeName)
+                .answeredBy(actor -> matches(BrowseTheWeb.as(actor).findAll(byLocator), attributeName));
     }
 
-    public static ByNamedAttributeBuilder of(By byLocator) {
-        return new ByNamedAttributeBuilder(byLocator);
+    public static Question<String> of(String locator, String attributeName) {
+        return Question.about(attributeName + " attribute of " + locator)
+                .answeredBy(actor -> matches(BrowseTheWeb.as(actor).findAll(locator), attributeName));
     }
 
-    public static StringNamedAttributeBuilder of(String locator) {
-        return new StringNamedAttributeBuilder(locator);
+    public static Question<Collection<String>> ofEach(Target target, String attributeName) {
+        return Question.about(attributeName +" attribute of each " + target.getName())
+                .answeredBy(actor -> target.resolveAllFor(actor)
+                .stream()
+                .map(element -> matches(singletonList(element), attributeName))
+                .collect(Collectors.toList()));
     }
 
-    public static class TargetNamedAttributeBuilder {
-
-        private final Target target;
-
-        public TargetNamedAttributeBuilder(Target target) {
-            this.target = target;
-        }
-
-        public UIStateReaderBuilder<Attribute> named(String name) {
-            return new UIStateReaderBuilder<>(target, Attribute.class, Optional.of(name));
-        }
+    public static Question<Collection<String>> ofEach(By byLocator, String attributeName) {
+        return Question.about(attributeName +" attribute of each " + byLocator)
+                .answeredBy(actor -> BrowseTheWeb.as(actor).findAll(byLocator)
+                .stream()
+                .map(element -> matches(singletonList(element), attributeName))
+                .collect(Collectors.toList()));
     }
 
-    public static class ByNamedAttributeBuilder {
-
-        private final By byLocator;
-
-        public ByNamedAttributeBuilder(By byLocator) {
-            this.byLocator = byLocator;
-        }
-
-        public UIStateReaderBuilder<Attribute> named(String name) {
-            return new UIStateReaderBuilder<>(Target.the(byLocator.toString()).located(byLocator), Attribute.class, Optional.of(name));
-        }
+    public static Question<Collection<String>> ofEach(String locator, String attributeName) {
+        return Question.about(attributeName +" attribute of each " + locator)
+                .answeredBy(actor -> BrowseTheWeb.as(actor).findAll(locator)
+                .stream()
+                .map(element -> matches(singletonList(element), attributeName))
+                .collect(Collectors.toList()));
     }
 
-    public static class StringNamedAttributeBuilder {
-
-        private final String locator;
-
-        public StringNamedAttributeBuilder(String locator) {
-            this.locator = locator;
-        }
-
-        public UIStateReaderBuilder<Attribute> named(String name) {
-            return new UIStateReaderBuilder<>(Target.the(locator).locatedBy(locator), Attribute.class, Optional.of(name));
-        }
+    public static QuestionForName of(Target target) {
+        return name -> Attribute.of(target, name);
     }
 
-    public String resolve() {
-        return target.resolveFor(actor).getAttribute(attributeName);
+    public static QuestionForName of(By byLocator) {
+        return name -> Attribute.of(byLocator, name);
     }
 
-    public java.util.List<String> resolveAll() {
-        List<WebElementFacade> resolvedElements = new ArrayList(target.resolveAllFor(actor));
-        return resolvedElements.stream()
+    public static QuestionForName of(String locator) {
+        return name -> Attribute.of(locator, name);
+    }
+
+    public static QuestionForNames ofEach(Target target) {
+        return name -> Attribute.ofEach(target, name);
+    }
+
+    public static QuestionForNames ofEach(By byLocator) {
+        return name -> Attribute.ofEach(byLocator, name);
+    }
+
+    public static QuestionForNames ofEach(String locator) {
+        return name -> Attribute.ofEach(locator, name);
+    }
+
+    private static String matches(List<WebElementFacade> elements, String attributeName) {
+        return elements.stream()
+                .findFirst()
                 .map(element -> element.getAttribute(attributeName))
-                .collect(Collectors.toList());
+                .orElse("");
     }
 }
